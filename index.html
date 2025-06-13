@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Decentralized Identity Management by Riyad</title>
+    <!-- Tailwind CSS CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts - Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* Global styles for background and font */
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(to bottom right, #e0e7ff, #e9d5ff); /* Light mode gradient */
+            transition: background-color 0.5s ease-in-out; /* Smooth transition for dark mode */
+            overflow-x: hidden; /* Prevent horizontal scroll */
+        }
+
+        /* Dark mode styles */
+        body.dark {
+            background: linear-gradient(to bottom right, #111827, #1f2937); /* Dark mode gradient */
+        }
+
+        /* Glassmorphism effect */
+        .glass {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
+            border-radius: 1.5rem; /* More rounded corners */
+            padding: 2rem; /* Increased padding */
+        }
+
+        /* Dark mode specific glassmorphism */
+        .dark .glass {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+        }
+
+        /* Custom animation for background blobs */
+        @keyframes blob {
+            0%, 100% {
+                transform: translate(0, 0) scale(1);
+            }
+            33% {
+                transform: translate(30px, -50px) scale(1.1);
+            }
+            66% {
+                transform: translate(-20px, 40px) scale(0.9);
+            }
+        }
+
+        .animate-blob {
+            animation: blob 7s infinite cubic-bezier(0.6, 0.4, 0.4, 0.8);
+        }
+
+        .animation-delay-2000 {
+            animation-delay: 2s;
+        }
+        .animation-delay-4000 {
+            animation-delay: 4s;
+        }
+
+        /* Toast notification styling */
+        .toast {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1000;
+        }
+
+        /* Utility classes for text colors based on dark mode */
+        .text-gray-800 { color: #1f2937; }
+        .text-gray-700 { color: #374151; }
+        .text-gray-600 { color: #4b5563; }
+        .dark .text-white { color: #ffffff; }
+        .dark .text-gray-300 { color: #d1d5db; }
+        .dark .text-gray-200 { color: #e5e7eb; }
+        .dark .text-gray-400 { color: #9ca3af; }
+        .dark .text-gray-800 { color: #ffffff; /* Override for dark mode on default text-gray-800 */ }
+        .dark .text-gray-700 { color: #d1d5db; /* Override for dark mode on default text-gray-700 */ }
+        .dark .text-gray-600 { color: #9ca3af; /* Override for dark mode on default text-gray-600 */ }
+
+        /* Responsive adjustments for smaller screens */
+        @media (max-width: 768px) {
+            .glass {
+                padding: 1.5rem;
+                border-radius: 1rem;
+            }
+            h1.text-4xl {
+                font-size: 2.5rem;
+                line-height: 1.2;
+            }
+            h2.text-3xl {
+                font-size: 2rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .glass {
+                padding: 1rem;
+            }
+            h1.text-4xl {
+                font-size: 2rem;
+            }
+            h2.text-3xl {
+                font-size: 1.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Background pulsating circles for premium look -->
+    <div class="absolute inset-0 overflow-hidden -z-10">
+        <div class="absolute w-96 h-96 bg-purple-400 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob top-0 left-1/4"></div>
+        <div class="absolute w-96 h-96 bg-blue-400 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-2000 top-1/3 right-1/4"></div>
+        <div class="absolute w-96 h-96 bg-indigo-400 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-4000 bottom-0 left-1/3"></div>
+    </div>
+
+    <!-- Landing Page Section -->
+    <div id="landing-page" class="w-full max-w-4xl mx-auto p-4 opacity-0">
+        <header class="text-center mb-12">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-4xl sm:text-5xl font-extrabold text-gray-800 dark:text-white leading-tight drop-shadow-md">
+                    Decentralized Identity Management <span class="text-indigo-600 dark:text-purple-400">by Riyad</span>
+                </h1>
+                <button
+                    id="toggle-dark-mode"
+                    aria-label="Switch to dark mode"
+                    class="p-3 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white shadow-lg transform transition duration-300 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                    🌙
+                </button>
+            </div>
+            <p class="text-xl text-gray-700 dark:text-gray-300 font-light mt-4">
+                Empowering users with secure, self-sovereign identity using blockchain technology.
+            </p>
+        </header>
+
+        <main class="w-full mx-auto space-y-12">
+            <section class="glass p-8 rounded-2xl border border-opacity-20 dark:border-opacity-10 dark:shadow-xl">
+                <h2 class="text-3xl font-bold text-gray-800 dark:text-white mb-4 text-center">What is This?</h2>
+                <p class="text-lg text-gray-700 dark:text-gray-300 leading-relaxed">
+                    This prototype demonstrates a cutting-edge blockchain-based decentralized identity (DID) system built on Ethereum.
+                    It empowers users to register unique identifiers, issue and revoke verifiable credentials, and verify them securely
+                    without relying on centralized authorities. Powered by smart contracts, it ensures unparalleled privacy, security, and user control over personal data.
+                </p>
+            </section>
+
+            <section class="glass p-8 rounded-2xl border border-opacity-20 dark:border-opacity-10 dark:shadow-xl">
+                <h2 class="text-3xl font-bold text-gray-800 dark:text-white mb-4 text-center">Key Features</h2>
+                <ul class="list-disc list-inside text-lg text-gray-700 dark:text-gray-300 space-y-3">
+                    <li><strong>DID Registration</strong>: Create unique decentralized identifiers linked to your Ethereum address, giving you full ownership.</li>
+                    <li><strong>Credential Issuance</strong>: Issue verifiable credentials (e.g., name, degree, professional licenses) as secure cryptographic hashes on-chain.</li>
+                    <li><strong>Credential Revocation</strong>: Instantly revoke issued credentials to maintain absolute control over your digital identity, enhancing security and privacy.</li>
+                    <li><strong>Credential Verification</strong>: Easily verify credentials against the immutable blockchain for secure and transparent authentication processes.</li>
+                    <li><strong>Privacy by Design</strong>: Sensitive personal data is hashed on-chain, with robust support for optional off-chain storage solutions like IPFS for expanded data management.</li>
+                    <li><strong>Enhanced Security</strong>: Engineered with rigorous input sanitization, reentrancy protection, and seamless MetaMask integration for a secure and intuitive user experience.</li>
+                </ul>
+            </section>
+
+            <section class="glass p-8 rounded-2xl border border-opacity-20 dark:border-opacity-10 dark:shadow-xl">
+                <h2 class="text-3xl font-bold text-gray-800 dark:text-white mb-4 text-center">How to Get Started</h2>
+                <ol class="list-decimal list-inside text-lg text-gray-700 dark:text-gray-300 space-y-6">
+                    <li>
+                        <strong>Deploy Smart Contract</strong>: Save the <code>IdentityManager.sol</code> contract and deploy it to a testnet (e.g., Sepolia) using Hardhat.
+                        <pre class="bg-gray-100 dark:bg-gray-800 text-sm text-gray-800 dark:text-gray-200 p-3 rounded-lg mt-3 overflow-x-auto shadow-inner">
+                            <code class="block whitespace-pre-wrap">
+                                npm install --save-dev hardhat @openzeppelin/contracts<br/>
+                                npx hardhat run scripts/deploy.js --network sepolia
+                            </code>
+                        </pre>
+                        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                            After deployment, remember to update the <code>contractAddress</code> variable in this application's code with your deployed address.
+                        </p>
+                    </li>
+                    <li>
+                        <strong>Run the Application</strong>: Save this entire HTML file and open it in a modern web browser. Ensure you have the MetaMask browser extension installed and configured for the Sepolia testnet, with some test ETH from a faucet.
+                    </li>
+                    <li>
+                        <strong>Test the Prototype</strong>:
+                        <ul class="list-disc list-inside mt-4 ml-6 text-base space-y-2">
+                            <li>Click the "Try the Prototype" button below to access the decentralized identity interface.</li>
+                            <li>Connect your MetaMask wallet to the Sepolia network.</li>
+                            <li>Experiment with the functionalities:
+                                <ul class="list-disc list-inside ml-6 mt-1">
+                                    <li>Register a new DID (e.g., <code>did:ethr:0x123abc...</code>).</li>
+                                    <li>Issue a verifiable credential (e.g., <code>{'{"name": "John Doe", "age": 30}'}</code>).</li>
+                                    <li>Try revoking an existing credential.</li>
+                                    <li>Verify a credential using a DID and the original credential data.</li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </li>
+                    <li>
+                        <strong>Production Deployment</strong>: For a production environment, host this HTML file on a secure web server (e.g., Vercel, Netlify) with HTTPS enabled. Ensure your Content Security Policy (CSP) headers are appropriately configured for security.
+                    </li>
+                </ol>
+            </section>
+
+            <section class="text-center">
+                <button
+                    id="try-prototype"
+                    class="relative inline-flex items-center justify-center p-0.5 mb-2 me-2 overflow-hidden text-sm font-medium text-gray-900 rounded-lg group bg-gradient-to-br from-purple-600 to-blue-500 group-hover:from-purple-600 group-hover:to-blue-500 hover:text-white dark:text-white focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-800 shadow-lg transform transition duration-300 hover:scale-105"
+                    aria-label="Try the decentralized identity prototype"
+                >
+                    <span class="relative px-5 py-2.5 transition-all ease-in duration-75 bg-white dark:bg-gray-900 rounded-md group-hover:bg-opacity-0">
+                        🚀 Try the Prototype
+                    </span>
+                </button>
+            </section>
+        </main>
+
+        <footer class="mt-12 text-center text-gray-600 dark:text-gray-300">
+            <p class="text-sm">Built with Ethereum, Ethers.js, HTML, CSS, JavaScript, and Anime.js. © 2025</p>
+        </footer>
+    </div>
+
+    <!-- Prototype Page Section -->
+    <div id="prototype-page" class="max-w-md mx-auto hidden p-4 opacity-0">
+        <div class="glass p-8 rounded-2xl border border-opacity-20 dark:border-opacity-10 dark:shadow-xl">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-3xl font-bold text-gray-800 dark:text-white">Decentralized Identity</h1>
+                <button
+                    id="toggle-dark-mode-prototype"
+                    aria-label="Switch to dark mode"
+                    class="p-3 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white shadow-lg transform transition duration-300 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                    🌙
+                </button>
+            </div>
+
+            <p id="account-status" class="text-md text-gray-700 dark:text-gray-300 mb-4 font-semibold p-3 bg-gray-100 dark:bg-gray-800 rounded-lg hidden" aria-live="polite">
+                Connected: <!-- Account address will be inserted here -->
+            </p>
+
+            <div class="space-y-6">
+                <button
+                    id="connect-wallet"
+                    class="w-full py-3 px-6 bg-gradient-to-r from-indigo-500 to-blue-600 text-white font-semibold rounded-lg hover:from-indigo-600 hover:to-blue-700 transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                    aria-label="Connect MetaMask wallet"
+                >
+                    Connect MetaMask
+                </button>
+
+                <div>
+                    <label for="did-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Register DID</label>
+                    <input
+                        id="did-input"
+                        type="text"
+                        placeholder="Enter DID (e.g., did:ethr:0x...)"
+                        class="mt-1 w-full p-3 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-white border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-200"
+                        aria-required="true"
+                    >
+                    <button
+                        id="register-did"
+                        class="mt-3 w-full py-3 px-6 bg-gradient-to-r from-green-500 to-teal-600 text-white font-semibold rounded-lg hover:from-green-600 hover:to-teal-700 transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                        aria-label="Register DID"
+                    >
+                        Register DID
+                    </button>
+                </div>
+
+                <div>
+                    <label for="credential-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Issue Credential</label>
+                    <input
+                        id="credential-input"
+                        type="text"
+                        placeholder="Enter credential data (e.g., {'name': 'John Doe'})"
+                        class="mt-1 w-full p-3 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-white border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-200"
+                        aria-required="true"
+                    >
+                    <button
+                        id="issue-credential"
+                        class="mt-3 w-full py-3 px-6 bg-gradient-to-r from-blue-500 to-cyan-600 text-white font-semibold rounded-lg hover:from-blue-600 hover:to-cyan-700 transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                        aria-label="Issue Credential"
+                    >
+                        Issue Credential
+                    </button>
+                </div>
+
+                <div>
+                    <label for="revoke-credential-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Revoke Credential</label>
+                    <input
+                        id="revoke-credential-input"
+                        type="text"
+                        placeholder="Enter credential data to revoke"
+                        class="mt-1 w-full p-3 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-white border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-200"
+                        aria-required="true"
+                    >
+                    <button
+                        id="revoke-credential"
+                        class="mt-3 w-full py-3 px-6 bg-gradient-to-r from-red-500 to-pink-600 text-white font-semibold rounded-lg hover:from-red-600 hover:to-pink-700 transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                        aria-label="Revoke Credential"
+                    >
+                        Revoke Credential
+                    </button>
+                </div>
+
+                <div>
+                    <label for="verify-did-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Verify Credential</label>
+                    <input
+                        id="verify-did-input"
+                        type="text"
+                        placeholder="Enter DID to verify"
+                        class="mt-1 w-full p-3 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-white border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-200"
+                        aria-required="true"
+                    >
+                    <input
+                        id="verify-credential-input"
+                        type="text"
+                        placeholder="Enter credential data to verify"
+                        class="mt-3 w-full p-3 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-white border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-200"
+                        aria-required="true"
+                    >
+                    <button
+                        id="verify-credential"
+                        class="mt-3 w-full py-3 px-6 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-semibold rounded-lg hover:from-purple-600 hover:to-indigo-700 transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                        aria-label="Verify Credential"
+                    >
+                        Verify Credential
+                    </button>
+                </div>
+
+                <button
+                    id="back-to-landing"
+                    class="w-full py-3 px-6 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-700 transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-gray-500 shadow-md"
+                    aria-label="Back to landing page"
+                >
+                    Back to Landing
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-3"></div>
+
+    <!-- External Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.7/dist/purify.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js"></script>
+
+    <script>
+        // Contract configuration
+        const contractAddress = "YOUR_CONTRACT_ADDRESS"; // IMPORTANT: Replace with your deployed contract address
+        const contractABI = [
+            {
+                "inputs": [{"internalType": "string", "name": "did", "type": "string"}],
+                "name": "registerDID",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {"internalType": "string", "name": "did", "type": "string"},
+                    {"internalType": "bytes32", "name": "credentialHash", "type": "bytes32"}
+                ],
+                "name": "issueCredential",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {"internalType": "string", "name": "did", "type": "string"},
+                    {"internalType": "bytes32", "name": "credentialHash", "type": "bytes32"}
+                ],
+                "name": "revokeCredential",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {"internalType": "string", "name": "did", "type": "string"},
+                    {"internalType": "bytes32", "name": "credentialHash", "type": "bytes32"}
+                ],
+                "name": "verifyCredential",
+                "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {"indexed": false, "internalType": "string", "name": "did", "type": "string"},
+                    {"indexed": false, "internalType": "address", "name": "owner", "type": "address"}
+                ],
+                "name": "DIDRegistered",
+                "type": "event"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {"indexed": false, "internalType": "string", "name": "did", "type": "string"},
+                    {"indexed": false, "internalType": "bytes32", "name": "credentialHash", "type": "bytes32"}
+                ],
+                "name": "CredentialIssued",
+                "type": "event"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {"indexed": false, "internalType": "string", "name": "did", "type": "string"},
+                    {"indexed": false, "internalType": "bytes32", "name": "credentialHash", "type": "bytes32"}
+                ],
+                "name": "CredentialRevoked",
+                "type": "event"
+            },
+            {
+                "inputs": [
+                    {"internalType": "string", "name": "", "type": "string"},
+                    {"internalType": "bytes32", "name": "", "type": "bytes32"}
+                ],
+                "name": "credentials",
+                "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [{"internalType": "string", "name": "", "type": "string"}],
+                "name": "didToAddress",
+                "outputs": [{"internalType": "address", "name": "", "type": "address"}],
+                "stateMutability": "view",
+                "type": "function"
+            }
+        ];
+
+        // State variables (global equivalents)
+        let provider = null;
+        let signer = null;
+        let contract = null;
+        let account = null;
+        let isDarkMode = localStorage.getItem('darkMode') === 'true';
+        let isLoading = false; // To prevent multiple clicks during async ops
+
+        // DOM elements
+        const landingPage = document.getElementById('landing-page');
+        const prototypePage = document.getElementById('prototype-page');
+        const toggleDarkMode = document.getElementById('toggle-dark-mode');
+        const toggleDarkModePrototype = document.getElementById('toggle-dark-mode-prototype');
+        const tryPrototype = document.getElementById('try-prototype');
+        const backToLanding = document.getElementById('back-to-landing');
+        const connectWalletBtn = document.getElementById('connect-wallet');
+        const accountStatus = document.getElementById('account-status');
+        const didInput = document.getElementById('did-input');
+        const credentialInput = document.getElementById('credential-input');
+        const revokeCredentialInput = document.getElementById('revoke-credential-input');
+        const verifyDidInput = document.getElementById('verify-did-input');
+        const verifyCredentialInput = document.getElementById('verify-credential-input');
+        const registerDidBtn = document.getElementById('register-did');
+        const issueCredentialBtn = document.getElementById('issue-credential');
+        const revokeCredentialBtn = document.getElementById('revoke-credential');
+        const verifyCredentialBtn = document.getElementById('verify-credential');
+        const toastContainer = document.getElementById('toast-container');
+
+        /**
+         * Displays a toast notification.
+         * @param {string} message - The message to display.
+         * @param {'success'|'error'} type - The type of notification (determines color).
+         */
+        function showToast(message, type) {
+            const toast = document.createElement('div');
+            toast.className = `toast p-4 rounded-lg shadow-lg flex items-center justify-between transition-all duration-300 ease-out ${type === 'error' ? 'bg-red-500' : 'bg-green-500'}`;
+            toast.innerHTML = `
+                <span class="text-white font-medium">${DOMPurify.sanitize(message)}</span>
+                <button class="ml-2 text-white opacity-75 hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-white rounded-full p-1 leading-none" aria-label="Close notification">✖</button>
+            `;
+            toastContainer.appendChild(toast);
+
+            // Animate toast in
+            anime({
+                targets: toast,
+                translateX: ['100%', '0%'],
+                opacity: [0, 1],
+                duration: 300,
+                easing: 'easeOutQuad',
+                complete: () => {
+                    setTimeout(() => {
+                        // Animate toast out after 3 seconds
+                        anime({
+                            targets: toast,
+                            translateX: ['0%', '100%'],
+                            opacity: [1, 0],
+                            duration: 300,
+                            easing: 'easeInQuad',
+                            complete: () => toast.remove() // Remove from DOM after animation
+                        });
+                    }, 3000);
+                }
+            });
+
+            // Close button listener
+            toast.querySelector('button').addEventListener('click', () => {
+                anime({
+                    targets: toast,
+                    translateX: ['0%', '100%'],
+                    opacity: [1, 0],
+                    duration: 200,
+                    easing: 'easeInQuad',
+                    complete: () => toast.remove()
+                });
+            });
+        }
+
+        /**
+         * Sanitizes input strings using DOMPurify to prevent XSS.
+         * @param {string} input - The string to sanitize.
+         * @returns {string} The sanitized string.
+         */
+        function sanitizeInput(input) {
+            return DOMPurify.sanitize(input);
+        }
+
+        /**
+         * Updates the dark mode state and applies/removes 'dark' class from body.
+         * Also animates background gradient.
+         */
+        function updateDarkMode() {
+            document.body.classList.toggle('dark', isDarkMode);
+            localStorage.setItem('darkMode', isDarkMode);
+
+            // Animate background gradient
+            anime({
+                targets: 'body',
+                background: isDarkMode
+                    ? ['linear-gradient(to bottom right, #e0e7ff, #e9d5ff)', 'linear-gradient(to bottom right, #111827, #1f2937)']
+                    : ['linear-gradient(to bottom right, #111827, #1f2937)', 'linear-gradient(to bottom right, #e0e7ff, #e9d5ff)'],
+                duration: 500,
+                easing: 'easeOutQuad',
+            });
+
+            // Update sun/moon icon
+            const icon = isDarkMode ? '☀️' : '🌙';
+            toggleDarkMode.textContent = icon;
+            toggleDarkModePrototype.textContent = icon;
+        }
+
+        /**
+         * Handles page transitions with animations.
+         * @param {'landing'|'prototype'} pageToShow - The ID of the page to display.
+         */
+        function navigateToPage(pageToShow) {
+            const currentActivePage = landingPage.classList.contains('hidden') ? prototypePage : landingPage;
+            const targetPage = pageToShow === 'landing' ? landingPage : prototypePage;
+
+            if (currentActivePage === targetPage) return; // Already on the target page
+
+            // Animate current page out
+            anime({
+                targets: currentActivePage,
+                opacity: [1, 0],
+                translateY: [0, 10],
+                duration: 400,
+                easing: 'easeInQuad',
+                complete: () => {
+                    currentActivePage.classList.add('hidden'); // Hide after animation
+                    // Animate target page in
+                    anime({
+                        targets: targetPage,
+                        opacity: [0, 1],
+                        translateY: [10, 0],
+                        duration: 500,
+                        easing: 'easeOutQuad',
+                        begin: () => {
+                            targetPage.classList.remove('hidden'); // Show before animation
+                        }
+                    });
+                }
+            });
+        }
+
+        /**
+         * Initializes MetaMask connection and Ethereum contract instance.
+         */
+        async function connectWallet() {
+            if (!window.ethereum) {
+                showToast('MetaMask not detected! Please install MetaMask to use this application.', 'error');
+                return;
+            }
+            if (isLoading) return; // Prevent multiple clicks
+            isLoading = true;
+            connectWalletBtn.textContent = 'Connecting...';
+            connectWalletBtn.disabled = true;
+
+            try {
+                // Request accounts from MetaMask
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                // Initialize ethers provider and signer
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                signer = provider.getSigner();
+                // Initialize contract instance with signer
+                contract = new ethers.Contract(contractAddress, contractABI, signer);
+                // Get the connected account address
+                account = await signer.getAddress();
+                // Update UI with connected account
+                accountStatus.textContent = `Connected: ${account.slice(0, 6)}...${account.slice(-4)}`;
+                accountStatus.classList.remove('hidden');
+                showToast('Wallet connected successfully!', 'success');
+            } catch (error) {
+                showToast(`Error connecting wallet: ${error.message}`, 'error');
+            } finally {
+                isLoading = false;
+                connectWalletBtn.textContent = 'Connect MetaMask';
+                connectWalletBtn.disabled = false;
+                updateButtonStates(); // Update button states after connection attempt
+            }
+        }
+
+        /**
+         * Registers a Decentralized Identifier (DID) on the blockchain.
+         */
+        async function registerDID() {
+            if (!contract || !didInput.value) {
+                showToast('Please connect wallet and enter a DID', 'error');
+                return;
+            }
+            const sanitizedDid = sanitizeInput(didInput.value);
+            if (!sanitizedDid.startsWith('did:ethr:')) {
+                showToast('Invalid DID format. DID must start with "did:ethr:".', 'error');
+                return;
+            }
+            if (isLoading) return;
+            isLoading = true;
+            registerDidBtn.textContent = 'Processing...';
+            registerDidBtn.disabled = true;
+
+            try {
+                // Call the registerDID function on the smart contract
+                const tx = await contract.registerDID(sanitizedDid);
+                await tx.wait(); // Wait for the transaction to be mined
+                showToast(`DID "${sanitizedDid}" registered successfully!`, 'success');
+                didInput.value = ''; // Clear input
+            } catch (error) {
+                showToast(`Error registering DID: ${error.message}`, 'error');
+            } finally {
+                isLoading = false;
+                registerDidBtn.textContent = 'Register DID';
+                registerDidBtn.disabled = false;
+                updateButtonStates();
+            }
+        }
+
+        /**
+         * Issues a verifiable credential for a given DID.
+         */
+        async function issueCredential() {
+            if (!contract || !didInput.value || !credentialInput.value) {
+                showToast('Please connect wallet, enter DID, and credential data', 'error');
+                return;
+            }
+            const sanitizedDid = sanitizeInput(didInput.value);
+            const sanitizedCredential = sanitizeInput(credentialInput.value);
+            if (!sanitizedDid.startsWith('did:ethr:')) {
+                showToast('Invalid DID format. DID must start with "did:ethr:".', 'error');
+                return;
+            }
+            if (isLoading) return;
+            isLoading = true;
+            issueCredentialBtn.textContent = 'Processing...';
+            issueCredentialBtn.disabled = true;
+
+            try {
+                // Hash the credential data before sending to the blockchain
+                const credentialHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(sanitizedCredential));
+                // Call the issueCredential function on the smart contract
+                const tx = await contract.issueCredential(sanitizedDid, credentialHash);
+                await tx.wait();
+                showToast(`Credential issued for DID "${sanitizedDid}"!`, 'success');
+                didInput.value = '';
+                credentialInput.value = '';
+            } catch (error) {
+                showToast(`Error issuing credential: ${error.message}`, 'error');
+            } finally {
+                isLoading = false;
+                issueCredentialBtn.textContent = 'Issue Credential';
+                issueCredentialBtn.disabled = false;
+                updateButtonStates();
+            }
+        }
+
+        /**
+         * Revokes an existing verifiable credential.
+         */
+        async function revokeCredential() {
+            if (!contract || !didInput.value || !revokeCredentialInput.value) {
+                showToast('Please connect wallet, enter DID, and credential to revoke', 'error');
+                return;
+            }
+            const sanitizedDid = sanitizeInput(didInput.value);
+            const sanitizedCredential = sanitizeInput(revokeCredentialInput.value);
+            if (!sanitizedDid.startsWith('did:ethr:')) {
+                showToast('Invalid DID format. DID must start with "did:ethr:".', 'error');
+                return;
+            }
+            if (isLoading) return;
+            isLoading = true;
+            revokeCredentialBtn.textContent = 'Processing...';
+            revokeCredentialBtn.disabled = true;
+
+            try {
+                const credentialHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(sanitizedCredential));
+                // Call the revokeCredential function on the smart contract
+                const tx = await contract.revokeCredential(sanitizedDid, credentialHash);
+                await tx.wait();
+                showToast(`Credential revoked for DID "${sanitizedDid}"!`, 'success');
+                didInput.value = '';
+                revokeCredentialInput.value = '';
+            } catch (error) {
+                showToast(`Error revoking credential: ${error.message}`, 'error');
+            } finally {
+                isLoading = false;
+                revokeCredentialBtn.textContent = 'Revoke Credential';
+                revokeCredentialBtn.disabled = false;
+                updateButtonStates();
+            }
+        }
+
+        /**
+         * Verifies a credential against the blockchain.
+         */
+        async function verifyCredential() {
+            if (!contract || !verifyDidInput.value || !verifyCredentialInput.value) {
+                showToast('Please connect wallet, enter DID, and credential to verify', 'error');
+                return;
+            }
+            const sanitizedVerifyDid = sanitizeInput(verifyDidInput.value);
+            const sanitizedVerifyCredential = sanitizeInput(verifyCredentialInput.value);
+            if (!sanitizedVerifyDid.startsWith('did:ethr:')) {
+                showToast('Invalid DID format. DID must start with "did:ethr:".', 'error');
+                return;
+            }
+            if (isLoading) return;
+            isLoading = true;
+            verifyCredentialBtn.textContent = 'Processing...';
+            verifyCredentialBtn.disabled = true;
+
+            try {
+                const credentialHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(sanitizedVerifyCredential));
+                // Call the verifyCredential (view) function on the smart contract
+                const isValid = await contract.verifyCredential(sanitizedVerifyDid, credentialHash);
+                showToast(`Verification for DID "${sanitizedVerifyDid}" and credential: ${isValid ? 'VALID' : 'INVALID'}`, isValid ? 'success' : 'error');
+                verifyDidInput.value = '';
+                verifyCredentialInput.value = '';
+            } catch (error) {
+                showToast(`Error verifying credential: ${error.message}`, 'error');
+            } finally {
+                isLoading = false;
+                verifyCredentialBtn.textContent = 'Verify Credential';
+                verifyCredentialBtn.disabled = false;
+                updateButtonStates();
+            }
+        }
+
+        /**
+         * Ensures buttons are disabled/enabled based on contract presence and loading state.
+         */
+        function updateButtonStates() {
+            const disableButtons = !contract; // Buttons are disabled if contract is not initialized
+            registerDidBtn.disabled = disableButtons || isLoading;
+            issueCredentialBtn.disabled = disableButtons || isLoading;
+            revokeCredentialBtn.disabled = disableButtons || isLoading;
+            verifyCredentialBtn.disabled = disableButtons || isLoading;
+        }
+
+        // --- Event Listeners and Initial Setup ---
+
+        // Initialize dark mode on page load
+        updateDarkMode();
+
+        // Dark mode toggle buttons
+        toggleDarkMode.addEventListener('click', () => {
+            isDarkMode = !isDarkMode;
+            updateDarkMode();
+        });
+        toggleDarkModePrototype.addEventListener('click', () => {
+            isDarkMode = !isDarkMode;
+            updateDarkMode();
+        });
+
+        // Page navigation buttons
+        tryPrototype.addEventListener('click', () => navigateToPage('prototype'));
+        backToLanding.addEventListener('click', () => navigateToPage('landing'));
+
+        // MetaMask event listeners (global listener for accountsChanged and chainChanged)
+        if (window.ethereum) {
+            window.ethereum.on('accountsChanged', (accounts) => {
+                if (accounts.length === 0) {
+                    account = null;
+                    provider = null;
+                    signer = null;
+                    contract = null;
+                    accountStatus.classList.add('hidden');
+                    showToast('Wallet disconnected', 'error');
+                } else {
+                    account = accounts[0];
+                    accountStatus.textContent = `Connected: ${account.slice(0, 6)}...${account.slice(-4)}`;
+                    accountStatus.classList.remove('hidden');
+                    // Re-initialize provider, signer, contract as accounts have changed
+                    provider = new ethers.providers.Web3Provider(window.ethereum);
+                    signer = provider.getSigner();
+                    contract = new ethers.Contract(contractAddress, contractABI, signer);
+                    updateButtonStates(); // Update button states immediately
+                }
+            });
+            window.ethereum.on('chainChanged', () => {
+                window.location.reload(); // Reload page on network change
+            });
+        }
+
+        // Wallet connection button
+        connectWalletBtn.addEventListener('click', connectWallet);
+
+        // Form action buttons
+        registerDidBtn.addEventListener('click', registerDID);
+        issueCredentialBtn.addEventListener('click', issueCredential);
+        revokeCredentialBtn.addEventListener('click', revokeCredential);
+        verifyCredentialBtn.addEventListener('click', verifyCredential);
+
+        // Add event listeners to input fields to update button states (only needed for interactive inputs if logic depends on them)
+        // For general loading state, the `isLoading` flag is primary.
+        // For disabling based on `contract` being null, `updateButtonStates` is called after wallet connection/disconnection.
+
+        // Initial update of button states on load
+        window.onload = function () {
+            updateButtonStates();
+
+            // Initial animation for landing page (only if it's the default visible page)
+            if (!landingPage.classList.contains('hidden')) {
+                anime({
+                    targets: landingPage,
+                    opacity: [0, 1],
+                    translateY: [10, 0],
+                    duration: 800,
+                    easing: 'easeOutQuad',
+                });
+            }
+            // For prototype page, animation will be triggered by navigateToPage when it's first shown
+        };
+
+    </script>
+</body>
+</html>
